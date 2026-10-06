@@ -8,6 +8,8 @@ A small desktop PDF annotator for proofreaders (Windows, macOS, Linux).
 appends the changes to the end of the file (incremental save) — the original page content stays
 byte-for-byte identical, which is what typesetters need.
 
+![PDF Machinator screenshot](docs/screenshot.png)
+
 ## Features
 
 - **Insert text** right between the letters (e.g. a missing comma), in the size and baseline of the
