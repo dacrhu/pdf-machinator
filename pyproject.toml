@@ -1,0 +1,25 @@
+[project]
+name = "pdfmachinator"
+version = "1.0.0"
+license = { text = "AGPL-3.0-or-later" }
+readme = "README.md"
+urls = { Repository = "https://github.com/dacrhu/pdf-machinator" }
+description = "Kisfunkciós PDF-korrektor (annotációk, a tördelés érintetlen marad)"
+requires-python = ">=3.10"
+dependencies = ["pymupdf", "PySide6"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+pdfmachinator = "pdfmachinator.main:main"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
