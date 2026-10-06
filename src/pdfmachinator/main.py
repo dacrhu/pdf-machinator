@@ -1,5 +1,7 @@
 import sys
+from pathlib import Path
 
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from PySide6.QtCore import QLibraryInfo, QTranslator
@@ -11,6 +13,9 @@ from .mainwindow import MainWindow
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("PDF Machinator")
+    app.setApplicationDisplayName("PDF Machinator")
+    app.setDesktopFileName("hu.dacr.pdfmachinator")  # Linuxon az ikon/csoportosítás ehhez kötődik
+    app.setWindowIcon(QIcon(str(Path(__file__).parent / "assets" / "icon.png")))
     # a Qt saját szövegei (színválasztó, Mentés/Mégse gombok, fájlablak) is a nyelvünkön
     qt_tr = QTranslator()
     if LANG != "en" and qt_tr.load(f"qtbase_{LANG}", QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)):

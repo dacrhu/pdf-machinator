@@ -1,0 +1,113 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:   # kézi indítás: csak buildel és artifactot ad, release-t nem készít
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x86_64 # AppImage
+            os: ubuntu-22.04
+          - name: windows-x64 # egyetlen .exe
+            os: windows-latest
+          # Mindkét macOS build natív runneren fut (a PyMuPDF/PySide6 natív kerekeit
+          # nem lehet keresztfordítani): Apple Silicon és Intel.
+          - name: macos-arm64 # .dmg
+            os: macos-14
+          - name: macos-x64 # .dmg
+            os: macos-15-intel
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Linux libraries needed by Qt
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1
+
+      - run: pip install -e . pyinstaller pytest
+
+      - name: Tests
+        run: python -m pytest -q
+        env:
+          QT_QPA_PLATFORM: offscreen
+
+      - name: Version
+        id: ver
+        shell: bash
+        run: echo "v=$(python -c 'import pdfmachinator; print(pdfmachinator.__version__)')" >> "$GITHUB_OUTPUT"
+
+      - name: Build app (PyInstaller)
+        run: pyinstaller --noconfirm packaging/pdfmachinator.spec
+
+      - name: Package (Linux AppImage)
+        if: runner.os == 'Linux'
+        run: packaging/linux/build-appimage.sh "PDF-Machinator-${{ steps.ver.outputs.v }}-${{ matrix.name }}.AppImage"
+
+      - name: Package (Windows exe)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: mv "dist/PDF Machinator.exe" "PDF-Machinator-${{ steps.ver.outputs.v }}-${{ matrix.name }}.exe"
+
+      - name: Package (macOS dmg)
+        if: runner.os == 'macOS'
+        run: |
+          hdiutil create -volname "PDF Machinator" -srcfolder "dist/PDF Machinator.app" \
+            -ov -format UDZO "PDF-Machinator-${{ steps.ver.outputs.v }}-${{ matrix.name }}.dmg"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: |
+            PDF-Machinator-*.AppImage
+            PDF-Machinator-*.exe
+            PDF-Machinator-*.dmg
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: "PDF Machinator ${{ github.ref_name }}"
+          files: dist/*
+          fail_on_unmatched_files: true
+          body: |
+            Desktop PDF annotator for proofreaders: insert text, notes, highlights and circles
+            without changing the original page layout (annotations are appended to the file).
+
+            **Install**
+            - Windows: `.exe` (portable, no installer)
+            - macOS: `.dmg` (Apple Silicon `arm64` or Intel `x64`) — unsigned build, see the macOS note in the
+              [README](https://github.com/dacrhu/pdf-machinator#macos-app-reported-as-damaged-gatekeeper)
+            - Linux: `.AppImage` — `chmod +x` it and run
+
+            Licensed under AGPL-3.0; the source code is in this repository.

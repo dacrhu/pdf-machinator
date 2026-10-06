@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=PDF Machinator
+Name[hu]=PDF Machinator
+GenericName=PDF proofreading annotator
+Comment=Annotate PDFs for proofreading without changing the layout
+Exec=pdfmachinator %f
+Icon=pdfmachinator
+Terminal=false
+Categories=Office;Viewer;
+MimeType=application/pdf;
+StartupWMClass=pdfmachinator
